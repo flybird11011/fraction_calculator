@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分数计算器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .input-section {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        .result-section {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        
+        .result-item {
+            margin-bottom: 10px;
+        }
+        
+        .result-label {
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .result-value {
+            margin-left: 10px;
+            color: #333;
+        }
+        
+        .error {
+            color: red;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .en-label {
+            font-size: 14px;
+            color: #888;
+            font-style: italic;
+            margin-left: 5px;
+        }
+
+        .label-row {
+            display: flex;
+            align-items: baseline;
+            margin-bottom: 5px;
+        }
+
+        .label-row label {
+            margin-bottom: 0;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                margin: 20px;
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>分数计算器 <span class="en-label">Fraction Calculator</span></h1>
+        <div class="input-section">
+            <div class="label-row">
+                <label for="decimal">请输入小数：</label>
+                <span class="en-label">Enter a decimal number:</span>
+            </div>
+            <input type="number" id="decimal" step="any" placeholder="例如/Example: 1.011390577">
+            <button onclick="calculateFraction()">计算分数 <span class="en-label">Calculate Fraction</span></button>
+        </div>
+        <div class="result-section" id="resultSection" style="display: none;">
+            <h3>计算结果： <span class="en-label">Calculation Result:</span></h3>
+            <div class="result-item">
+                <span class="result-label">输入的小数：</span>
+                <span class="en-label">Input Decimal:</span>
+                <span class="result-value" id="inputValue"></span>
+            </div>
+            <div class="result-item">
+                <span class="result-label">最接近的分数：</span>
+                <span class="en-label">Closest Fraction:</span>
+                <span class="result-value" id="fractionResult"></span>
+            </div>
+            <div class="result-item">
+                <span class="result-label">分子：</span>
+                <span class="en-label">Numerator:</span>
+                <span class="result-value" id="numerator"></span>
+            </div>
+            <div class="result-item">
+                <span class="result-label">分母：</span>
+                <span class="en-label">Denominator:</span>
+                <span class="result-value" id="denominator"></span>
+            </div>
+            <div class="result-item">
+                <span class="result-label">差异值：</span>
+                <span class="en-label">Difference:</span>
+                <span class="result-value" id="difference"></span>
+            </div>
+        </div>
+        <div class="error" id="errorMessage" style="display: none;"></div>
+    </div>
+    
+    <script>
+        // 计算最接近的分数，分母不超过maxDenominator
+        function bestApproximation(x, maxDenominator) {
+            if (x === 0) return { numerator: 0, denominator: 1 };
+            
+            let sign = x < 0 ? -1 : 1;
+            x = Math.abs(x);
+            
+            let a = Math.floor(x);
+            let x1 = x - a;
+            
+            if (x1 < 1e-10) return { numerator: sign * a, denominator: 1 };
+            
+            let p0 = 1, q0 = 0;
+            let p1 = a, q1 = 1;
+            let p2, q2;
+            
+            while (q1 <= maxDenominator) {
+                a = Math.floor(1 / x1);
+                x1 = 1 / x1 - a;
+                
+                p2 = a * p1 + p0;
+                q2 = a * q1 + q0;
+                
+                if (q2 > maxDenominator) break;
+                
+                p0 = p1;
+                q0 = q1;
+                p1 = p2;
+                q1 = q2;
+                
+                if (x1 < 1e-10) break;
+            }
+            
+            // 比较当前近似和前一个近似
+            let error1 = Math.abs((p1 / q1) - x);
+            let error0 = Math.abs((p0 / q0) - x);
+            
+            if (error0 < error1 && q0 <= maxDenominator) {
+                return { numerator: sign * p0, denominator: q0 };
+            } else {
+                return { numerator: sign * p1, denominator: q1 };
+            }
+        }
+        
+        function calculateFraction() {
+            const decimalInput = document.getElementById('decimal');
+            const resultSection = document.getElementById('resultSection');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            const inputValue = decimalInput.value;
+            
+            if (!inputValue) {
+                errorMessage.textContent = '请输入一个小数！ / Please enter a decimal number!';
+                errorMessage.style.display = 'block';
+                resultSection.style.display = 'none';
+                return;
+            }
+
+            const x = parseFloat(inputValue);
+
+            if (isNaN(x)) {
+                errorMessage.textContent = '请输入有效的小数！ / Please enter a valid decimal number!';
+                errorMessage.style.display = 'block';
+                resultSection.style.display = 'none';
+                return;
+            }
+            
+            errorMessage.style.display = 'none';
+            
+            const maxDenominator = 9999;
+            let fraction = bestApproximation(x, maxDenominator);
+            
+            // 检查分子是否大于9999
+            if (Math.abs(fraction.numerator) > 9999) {
+                // 使用 1/原输入值 重新计算
+                const reciprocalX = 1 / x;
+                const reciprocalFraction = bestApproximation(reciprocalX, maxDenominator);
+                
+                // 交换分子分母作为最终结果
+                fraction = {
+                    numerator: reciprocalFraction.denominator,
+                    denominator: reciprocalFraction.numerator
+                };
+            }
+            
+            document.getElementById('inputValue').textContent = x;
+            document.getElementById('fractionResult').textContent = `${fraction.numerator}/${fraction.denominator}`;
+            document.getElementById('numerator').textContent = fraction.numerator;
+            document.getElementById('denominator').textContent = fraction.denominator;
+
+            const fractionAsDecimal = fraction.numerator / fraction.denominator;
+            const difference = fractionAsDecimal - x;
+            document.getElementById('difference').textContent = difference.toFixed(10);
+
+            resultSection.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
